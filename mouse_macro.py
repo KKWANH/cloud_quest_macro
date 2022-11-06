@@ -3,6 +3,7 @@ from	difflib			import SequenceMatcher
 import	pytesseract
 import	pyautogui
 import 	time
+import  os
 
 # 문제 리스트
 class Quest:
@@ -585,39 +586,76 @@ pyautogui.FAILSAFE = False
 status = 0
 sub_status = 0
 while 1:
-	if status == 0:
-		time.sleep(0.5)	
-		print("[MACRO] finding something...")
+	if status == 0:	
+		print("[MACRO] finding something...", status, sub_status)
+
+		# rPos = pyautogui.locateOnScreen('route_button.png', confidence=0.95)
+		# if sub_status == 2 and status != 1:
+		# 	mouseClick()
+
+		# if rPos != None:
+		# 	print("[MACRO] found route and go button")
+		# 	pyautogui.moveTo(rPos.left/1.9, rPos.top/1.9, duration=0.05)
+		# 	mouseClick()
+		# 	if sub_status != 2:
+		# 		for i in range(7):
+		# 			mouseClick()
+		# 			time.sleep(1)
+		# 			xPos = pyautogui.locateOnScreen("x_button.png", confidence=0.95)
+		# 			if xPos != None:
+		# 				break
+		# 	sub_status = 2
+		# 	continue
+		# else:
+		# 	print("[MACRO] route button not found")
+
 		xPos = pyautogui.locateOnScreen("x_button.png", confidence=0.95)
+		if xPos != None and sub_status != 1:
+			print("[MACRO] found x button")
+			status = 1
+			continue
+		else:
+			print("[MACRO] x button not found")
+			
 		wPos = pyautogui.locateOnScreen("wrong_button.png", confidence=0.95)
-		tPos = pyautogui.locateOnScreen('take_button.png', confidence=0.95)
-		if xPos != None and sub_status == 0:
-			status = 1
-			continue
-		elif wPos != None:
+		if wPos != None:
 			print("[MACRO] wrong answer, sorry...")
-			pyautogui.moveTo(wPos.left/1.9, wPos.top/1.9, duration=0.2)
+			pyautogui.moveTo(wPos.left/1.9, wPos.top/1.9, duration=0.05)
 			mouseClick()
 			status = 1
 			continue
-		elif tPos != None:
-			print("[MACRO] take!")
-			pyautogui.moveTo(tPos.left/1.9, tPos.top/1.9, duration=0.2)
-			mouseClick()
-			status = 0
-			sub_status = 0
-			continue
+		else:
+			print("[MACRO] wrong answer button not found")
+
+		tPos = pyautogui.locateOnScreen('take_button.png', confidence=0.95)
+		# if tPos != None:
+		# 	print("[MACRO] take!")
+		# 	pyautogui.moveTo(tPos.left/1.9, tPos.top/1.9, duration=0.05)
+		# 	mouseClick()
+		# 	status = 0
+		# 	continue
+		# else:
+		# 	print("[MACRO] take button not found")
 	elif status == 1:
 		sub_status = 1
 		print("[MACRO] question detected")
 		# 문제 읽기
-		pyautogui.screenshot('capture.png', region=(77, 150, 3300, 480))
-		cimg = Image.open('capture.png')
+		pyautogui.screenshot('tmp.png', region=(77, 150, 3300, 480))
+		cimg = Image.open('tmp.png')
 		ctxt = pytesseract.image_to_string(cimg)
 		print("---------------------------------------------")
-		print(ctxt)
-		print("---------------------------------------------")
-
+		print(ctxt, "---------------------------------------------")
+		os.remove("tmp.png")
+		if ("You are correct!" in ctxt):
+			print("[MACRO] sorry, it's not an question 😭")
+			status = 0
+			sub_status = 0
+			continue
+		if (len(ctxt) < 8):
+			print("[MACRO] sorry, something wrong happend to ctxt 😭")
+			status = 0
+			sub_status = 0
+			continue
 		# 버튼 위치 파악하기
 		count = 0
 		button_left = []
@@ -640,19 +678,23 @@ while 1:
 				answers.append(int(question[3].split(", ")[i]))
 		else:
 			for i in range(max_count):
-				pyautogui.moveTo(buttons[i][0], buttons[i][1], duration=0.2)
-				cimg = pyautogui.screenshot('answer'+str(i)+'.png', region=(buttons[i][0] * 1.9 - 100, buttons[i][1] * 1.9 - 450, 450, 450))
+				pyautogui.moveTo(buttons[i][0], buttons[i][1], duration=0.05)
+				cimg = pyautogui.screenshot('tmp.png', region=(buttons[i][0] * 1.9 - 100, buttons[i][1] * 1.9 - 450, 450, 450))
 				ctxt = pytesseract.image_to_string(cimg)
 				diff_list.append(SequenceMatcher(None, ctxt, question[3]).ratio())
-		if (question[0] == "string"):
-			answers.append(diff_list.index(max(diff_list)) + 1)
+				os.remove("tmp.png")
+			if (question[0] == "string"):
+				answers.append(diff_list.index(max(diff_list)) + 1)
 		print("[MACRO] answers found :", answers)
 		for answer in answers:
-			pyautogui.moveTo(buttons[answer - 1][0], buttons[answer - 1][1], duration=0.2)
+			pyautogui.moveTo(buttons[answer - 1][0], buttons[answer - 1][1], duration=0.05)
 			mouseClick()
 		print("[MACRO] click complete!")
 
 		aPos = pyautogui.locateOnScreen('answer_button.png', confidence=0.95)
-		pyautogui.moveTo(aPos.left/1.9, aPos.top/1.9, duration=0.2)
+		pyautogui.moveTo(aPos.left/1.9, aPos.top/1.9, duration=0.05)
 		mouseClick()
 		status = 0
+		sub_status = 0
+		time.sleep(0.5)
+		sub_status = 0
