@@ -6,7 +6,6 @@ import 	time
 
 # 문제 리스트
 class Quest:
-	_quest_count = 94
 	_quest_list = [
 		[
 			"number",
@@ -278,12 +277,6 @@ Which of the following statements best describes the shared responsibility model
 			"Question: \
 Windows and Linux EC2 instances have free tier eligible instance types",
 			"1",
-		],	[
-			"number",
-			"4",
-			"Question: \
-Which of the following metrics can be tracked in a scaling policy?",
-			"1, 2, 3, 4",
 		],	[
 			"number",
 			"1",
@@ -573,6 +566,7 @@ Which of the following AWS services provides resizable compute capacity in the c
 			"1",
 		]
 	]
+	_quest_count = len(_quest_list)
 	def search(self, str):
 		diff_list = []
 		for i in range(self._quest_count):
@@ -583,74 +577,82 @@ def mouseClick():
 	pyautogui.dragTo(button="left")
 	pyautogui.dragTo(button="left")
 	pyautogui.dragTo(button="left")
-	pyautogui.click()
-	pyautogui.click()
+	pyautogui.dragTo(button="left")
+	pyautogui.dragTo(button="left")
 
 # 설정?
 pyautogui.FAILSAFE = False
 status = 0
+sub_status = 0
 while 1:
-	time.sleep(0.5)
 	if status == 0:
-		print("[MACRO] readying for the question...")
-		# rPos = pyautogui.locateOnScreen("route_button.png", confidence=0.95)
+		time.sleep(0.5)	
+		print("[MACRO] finding something...")
 		xPos = pyautogui.locateOnScreen("x_button.png", confidence=0.95)
-		# if rPos != None:
-		# 	pyautogui.moveTo(rPos.left/1.9, rPos.top/1.9, duration=0.2)
-		# 	mouseClick()
-		# 	print("[MACRO] route button clicked")
-		# 	status = 1
-		# 	time.sleep(5)
-		# 	mouseClick()
-		# 	continue
-		if xPos != None:
+		wPos = pyautogui.locateOnScreen("wrong_button.png", confidence=0.95)
+		tPos = pyautogui.locateOnScreen('take_button.png', confidence=0.95)
+		if xPos != None and sub_status == 0:
 			status = 1
 			continue
+		elif wPos != None:
+			print("[MACRO] wrong answer, sorry...")
+			pyautogui.moveTo(wPos.left/1.9, wPos.top/1.9, duration=0.2)
+			mouseClick()
+			status = 1
+			continue
+		elif tPos != None:
+			print("[MACRO] take!")
+			pyautogui.moveTo(tPos.left/1.9, tPos.top/1.9, duration=0.2)
+			mouseClick()
+			status = 0
+			sub_status = 0
+			continue
 	elif status == 1:
+		sub_status = 1
+		print("[MACRO] question detected")
 		# 문제 읽기
 		pyautogui.screenshot('capture.png', region=(77, 150, 3300, 480))
 		cimg = Image.open('capture.png')
 		ctxt = pytesseract.image_to_string(cimg)
-		print("[MACRO] question found :", ctxt)
+		print("---------------------------------------------")
+		print(ctxt)
+		print("---------------------------------------------")
 
 		# 버튼 위치 파악하기
 		count = 0
 		button_left = []
 		buttons = []
 		for i in pyautogui.locateAllOnScreen('smallbox.png', confidence=0.95):
-			if (int((i.left - 30 * count)/190) * 100 not in button_left):
-				button_left.append(int((i.left - 30 * count)/190) * 100)
-				buttons.append([(i.left - 30 * count)/1.9, (i.top/1.9)])
+			if (int((i.left - 25 * count)/190) * 100 not in button_left):
+				button_left.append(int((i.left - 25 * count)/190) * 100)
+				buttons.append([(i.left - 25 * count)/1.9, (i.top/1.9)])
 				count += 1
 		print("[MACRO] buttons found :", len(buttons))
 
 		# 답 리스트 만들기
 		qInstance = Quest()
 		question = qInstance.search(ctxt)
-		answer = 1
+		answers = []
 		max_count = len(buttons)
 		diff_list = []
-		for i in range(max_count):
-			pyautogui.moveTo(buttons[i][0], buttons[i][1], duration=0.2)
-			cimg = pyautogui.screenshot('answer'+str(i)+'.png', region=(buttons[i][0] * 1.9 - 100, buttons[i][1] * 1.9 - 450, 450, 450))
-			ctxt = pytesseract.image_to_string(cimg)
-			if (question[0] == "number"):
-				answer = int(question[3])
-			else:
+		if (question[0] == "number"):
+			for i in range(int(question[1])):
+				answers.append(int(question[3].split(", ")[i]))
+		else:
+			for i in range(max_count):
+				pyautogui.moveTo(buttons[i][0], buttons[i][1], duration=0.2)
+				cimg = pyautogui.screenshot('answer'+str(i)+'.png', region=(buttons[i][0] * 1.9 - 100, buttons[i][1] * 1.9 - 450, 450, 450))
+				ctxt = pytesseract.image_to_string(cimg)
 				diff_list.append(SequenceMatcher(None, ctxt, question[3]).ratio())
 		if (question[0] == "string"):
-			answer = diff_list.index(max(diff_list)) + 1
-		pyautogui.moveTo(buttons[answer - 1][0], buttons[answer - 1][1], duration=0.2)
-		mouseClick()
-
-		pos = pyautogui.locateOnScreen('answer_button.png', confidence=0.95)
-		pyautogui.moveTo(pos.left/1.9, pos.top/1.9, duration=0.2)
-		mouseClick()
-
-		time.sleep(3)
-
-		pos = pyautogui.locateOnScreen('take_button.png', confidence=0.95)
-		if (pos != None):
-			pyautogui.moveTo(pos.left/1.9, pos.top/1.9, duration=0.2)
+			answers.append(diff_list.index(max(diff_list)) + 1)
+		print("[MACRO] answers found :", answers)
+		for answer in answers:
+			pyautogui.moveTo(buttons[answer - 1][0], buttons[answer - 1][1], duration=0.2)
 			mouseClick()
-			status = 0
+		print("[MACRO] click complete!")
+
+		aPos = pyautogui.locateOnScreen('answer_button.png', confidence=0.95)
+		pyautogui.moveTo(aPos.left/1.9, aPos.top/1.9, duration=0.2)
+		mouseClick()
+		status = 0
